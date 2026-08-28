@@ -1,0 +1,58 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+.migrate_in_place
+
+# IntelliJ project files
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code project files
+.vscode/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+
+# Android rules
+**/android/.gradle/
+**/android/captures/
+**/android/local.properties
+**/android/GeneratedPluginRegistrant.java
+**/android/.cxx/
+**/android/app/libs/
+*.apk
+*.aab
+
+# iOS / macOS rules
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.fls
+**/ios/Runner/GeneratedPluginRegistrant.h
+**/ios/Runner/GeneratedPluginRegistrant.m
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/profile/
+**/ios/Debug/
+**/ios/Release/
+
+# Sensitive keys and secrets
+key.properties
+**/*.keystore
+**/*.jks
+**/*.p12
+**/*.mobileprovision
