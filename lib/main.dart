@@ -221,7 +221,7 @@ class _PhoneTimerPageState extends State<PhoneTimerPage> with WidgetsBindingObse
     });
   }
 
-  void _toggleTimer() {
+  Future<void> _toggleTimer() async {
     if (_running) {
       platform.invokeMethod('stopTimerService');
       setState(() {
@@ -229,6 +229,13 @@ class _PhoneTimerPageState extends State<PhoneTimerPage> with WidgetsBindingObse
         // Сбрасываем оставшееся время до выбранного на диске
         _remainingSeconds = _minutes * 60;
       });
+      return;
+    }
+
+    // Запрашиваем разрешение на уведомления перед запуском сервиса
+    final bool permissionGranted = await platform.invokeMethod<bool>('requestNotificationPermission') ?? false;
+    if (!permissionGranted) {
+      // Можно показать Snackbar или диалог, если разрешение отклонено
       return;
     }
 

@@ -3,6 +3,7 @@ package com.example.sleepy
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -61,13 +62,17 @@ class TimerService : Service() {
 
     private fun startTimer(seconds: Int) {
         remainingSeconds = seconds
+        android.util.Log.d("Sleepy", "Starting timer: $seconds seconds")
         if (!isRunning) {
             isRunning = true
             createNotificationChannel()
-            startForeground(NOTIFICATION_ID, buildNotification())
+            if (android.os.Build.VERSION.SDK_INT >= 34) {
+                startForeground(NOTIFICATION_ID, buildNotification(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            } else {
+                startForeground(NOTIFICATION_ID, buildNotification())
+            }
             handler.post(runnable)
         } else {
-            // Если уже запущен, просто обновляем уведомление
             updateNotification()
             broadcastUpdate()
         }
@@ -89,8 +94,10 @@ class TimerService : Service() {
 
     private fun broadcastUpdate() {
         val intent = Intent(ACTION_TICK)
+        intent.setPackage("com.example.sleepy")
         intent.putExtra(EXTRA_REMAINING, remainingSeconds)
         intent.putExtra("IS_RUNNING", isRunning)
+        android.util.Log.d("Sleepy", "Broadcasting tick: $remainingSeconds")
         sendBroadcast(intent)
     }
 

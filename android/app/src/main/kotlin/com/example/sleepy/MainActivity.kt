@@ -3,6 +3,7 @@ package com.example.sleepy
 import android.app.admin.DevicePolicyManager
 import android.content.*
 import android.os.Build
+import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -19,10 +20,12 @@ class MainActivity : FlutterActivity() {
 
     private val timerReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            android.util.Log.d("Sleepy", "Received broadcast: ${intent?.action}")
             if (intent?.action == TimerService.ACTION_TICK) {
                 val remaining = intent.getIntExtra(TimerService.EXTRA_REMAINING, 0)
                 val isRunning = intent.getBooleanExtra("IS_RUNNING", false)
                 
+                android.util.Log.d("Sleepy", "Updating Flutter: remaining=$remaining, isRunning=$isRunning")
                 channel?.invokeMethod("onTimerTick", mapOf(
                     "remaining" to remaining,
                     "isRunning" to isRunning
@@ -79,13 +82,6 @@ class MainActivity : FlutterActivity() {
                 "startTimerService" -> {
                     val seconds = call.argument<Int>("seconds") ?: 0
                     
-                    // Запрос разрешения на уведомления для Android 13+
-                    if (Build.VERSION.SDK_INT >= 33) {
-                        if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
-                        }
-                    }
-
                     val intent = Intent(this, TimerService::class.java).apply {
                         action = TimerService.ACTION_START
                         putExtra(TimerService.EXTRA_SECONDS, seconds)
@@ -96,6 +92,23 @@ class MainActivity : FlutterActivity() {
                         startService(intent)
                     }
                     result.success(null)
+                }
+
+                "requestNotificationPermission" -> {
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            if (pendingResult != null) {
+                                result.error("ALREADY_REQUESTING", "Already requesting permission", null)
+                            } else {
+                                pendingResult = result
+                                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+                            }
+                        } else {
+                            result.success(true)
+                        }
+                    } else {
+                        result.success(true)
+                    }
                 }
 
                 "stopTimerService" -> {
@@ -115,7 +128,11 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
-        registerReceiver(timerReceiver, IntentFilter(TimerService.ACTION_TICK))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(timerReceiver, IntentFilter(TimerService.ACTION_TICK), Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(timerReceiver, IntentFilter(TimerService.ACTION_TICK))
+        }
     }
 
     override fun onDestroy() {
@@ -130,6 +147,15 @@ class MainActivity : FlutterActivity() {
             pendingResult?.success(isActive)
             pendingResult = null
         }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        if (requestCode == 101) {
+            val isGranted = grantResults.isNotEmpty() && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED
+            pendingResult?.success(isGranted)
+            pendingResult = null
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
     private fun requestAdmin() {
