@@ -115,7 +115,11 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
-        registerReceiver(timerReceiver, IntentFilter(TimerService.ACTION_TICK))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(timerReceiver, IntentFilter(TimerService.ACTION_TICK), Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(timerReceiver, IntentFilter(TimerService.ACTION_TICK))
+        }
     }
 
     override fun onDestroy() {
