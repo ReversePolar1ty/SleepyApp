@@ -3,26 +3,43 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  runApp(const PhoneTimerApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final isDark = prefs.getBool('isDark') ?? false;
+  
+  runApp(PhoneTimerApp(initialIsDark: isDark));
 }
 
 class PhoneTimerApp extends StatefulWidget {
-  const PhoneTimerApp({super.key});
+  final bool initialIsDark;
+  const PhoneTimerApp({super.key, required this.initialIsDark});
 
   @override
   State<PhoneTimerApp> createState() => _PhoneTimerAppState();
 }
 
 class _PhoneTimerAppState extends State<PhoneTimerApp> {
-  ThemeMode _themeMode = ThemeMode.light;
+  late ThemeMode _themeMode;
 
-  void _toggleTheme() {
-    setState(() {
-      _themeMode =
+  @override
+  void initState() {
+    super.initState();
+    _themeMode = widget.initialIsDark ? ThemeMode.dark : ThemeMode.light;
+  }
+
+  Future<void> _toggleTheme() async {
+    final newMode = 
       _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+      
+    setState(() {
+      _themeMode = newMode;
     });
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDark', newMode == ThemeMode.dark);
   }
 
   @override
