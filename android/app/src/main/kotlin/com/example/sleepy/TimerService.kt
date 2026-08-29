@@ -101,8 +101,7 @@ class TimerService : Service() {
 
     private fun buildNotification(): Notification {
         val minutes = remainingSeconds / 60
-        val seconds = remainingSeconds % 60
-        val timeText = String.format("%02d:%02d", minutes, seconds)
+        val timeText = if (minutes > 0) "$minutes мин" else "< 1 мин"
 
         val intent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
