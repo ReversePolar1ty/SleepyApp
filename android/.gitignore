@@ -31,12 +31,12 @@ out/
 build/
 
 # Android rules
-**/android/.gradle/
-**/android/captures/
-**/android/local.properties
-**/android/GeneratedPluginRegistrant.java
-**/android/.cxx/
-**/android/app/libs/
+.gradle/
+captures/
+local.properties
+GeneratedPluginRegistrant.java
+.cxx/
+app/libs/
 *.apk
 *.aab
 
@@ -53,7 +53,9 @@ build/
 
 # Sensitive keys and secrets
 key.properties
-**/*.keystore
-**/*.jks
-**/*.p12
-**/*.mobileprovision
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+.env
+.env.*
