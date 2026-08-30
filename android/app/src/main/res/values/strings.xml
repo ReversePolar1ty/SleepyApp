@@ -4,4 +4,8 @@
     <string name="device_admin_description">
         Позволяет Sleepy блокировать экран
     </string>
+    <string name="timer_expired_channel_name">Окончание таймера</string>
+    <string name="timer_expired_channel_description">Уведомления, когда время Sleepy истекло</string>
+    <string name="timer_expired_title">Время вышло</string>
+    <string name="timer_expired_text">Разрешите блокировку в Sleepy, чтобы экран блокировался автоматически</string>
 </resources>

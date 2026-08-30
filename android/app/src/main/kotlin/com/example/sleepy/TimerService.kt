@@ -3,7 +3,6 @@ package com.example.sleepy
 import android.app.*
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -14,13 +13,15 @@ class TimerService : Service() {
 
     companion object {
         const val CHANNEL_ID = "TimerServiceChannel"
+        const val EXPIRED_CHANNEL_ID = "TimerExpiredChannel"
         const val NOTIFICATION_ID = 101
-        
+        const val EXPIRED_NOTIFICATION_ID = 102
+
         const val ACTION_START = "ACTION_START"
         const val ACTION_STOP = "ACTION_STOP"
         const val ACTION_ADD_TIME = "ACTION_ADD_TIME"
         const val ACTION_TICK = "com.example.sleepy.TICK"
-        
+
         const val EXTRA_SECONDS = "EXTRA_SECONDS"
         const val EXTRA_REMAINING = "EXTRA_REMAINING"
     }
@@ -35,11 +36,14 @@ class TimerService : Service() {
                 remainingSeconds--
                 broadcastUpdate()
                 updateNotification()
-                handler.postDelayed(this, 1000)
+                if (remainingSeconds <= 0) {
+                    onTimerExpired()
+                    stopTimer()
+                } else {
+                    handler.postDelayed(this, 1000)
+                }
             } else {
                 stopTimer()
-                // Блокировка экрана через MainActivity или напрямую если есть доступ
-                // Но лучше отправить сигнал в MainActivity
             }
         }
     }
@@ -63,6 +67,7 @@ class TimerService : Service() {
     private fun startTimer(seconds: Int) {
         remainingSeconds = seconds
         android.util.Log.d("Sleepy", "Starting timer: $seconds seconds")
+        cancelExpiredNotification()
         if (!isRunning) {
             isRunning = true
             createNotificationChannel()
@@ -78,11 +83,74 @@ class TimerService : Service() {
         }
     }
 
+    private fun onTimerExpired() {
+        val locked = ScreenLockHelper.lockScreenIfPossible(this)
+        if (!locked) {
+            showExpiredFallbackNotification()
+        }
+    }
+
+    private fun showExpiredFallbackNotification() {
+        createExpiredNotificationChannel()
+
+        val openAppIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntentFlags =
+            PendingIntent.FLAG_UPDATE_CURRENT or
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+
+        val contentIntent = PendingIntent.getActivity(this, 3, openAppIntent, pendingIntentFlags)
+        val fullScreenIntent = PendingIntent.getActivity(this, 4, openAppIntent, pendingIntentFlags)
+
+        val notification = NotificationCompat.Builder(this, EXPIRED_CHANNEL_ID)
+            .setContentTitle(getString(R.string.timer_expired_title))
+            .setContentText(getString(R.string.timer_expired_text))
+            .setSmallIcon(R.drawable.ic_sleepy_moon)
+            .setContentIntent(contentIntent)
+            .setFullScreenIntent(fullScreenIntent, true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setAutoCancel(true)
+            .setVibrate(longArrayOf(0, 500, 200, 500))
+            .build()
+
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(EXPIRED_NOTIFICATION_ID, notification)
+    }
+
+    private fun cancelExpiredNotification() {
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancel(EXPIRED_NOTIFICATION_ID)
+    }
+
+    private fun createExpiredNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                EXPIRED_CHANNEL_ID,
+                getString(R.string.timer_expired_channel_name),
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = getString(R.string.timer_expired_channel_description)
+                enableVibration(true)
+            }
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
+        }
+    }
+
     private fun stopTimer() {
         isRunning = false
         handler.removeCallbacks(runnable)
         broadcastUpdate()
-        stopForeground(true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
         stopSelf()
     }
 

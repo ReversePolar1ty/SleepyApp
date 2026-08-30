@@ -30,10 +30,6 @@ class MainActivity : FlutterActivity() {
                     "remaining" to remaining,
                     "isRunning" to isRunning
                 ))
-
-                if (remaining <= 0 && isRunning) {
-                    lockScreen()
-                }
             }
         }
     }
@@ -177,8 +173,6 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun lockScreen() {
-        if (devicePolicyManager.isAdminActive(adminComponent)) {
-            devicePolicyManager.lockNow()
-        }
+        ScreenLockHelper.lockScreenIfPossible(this)
     }
 }
